@@ -6,7 +6,7 @@
         {
             "label": "build",
             "type": "shell",
-            "command": "cd ${fileDirname} && go build -o out/",
+            "command": "cd ${fileDirname} && go build -o bin/",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
