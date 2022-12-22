@@ -9,9 +9,10 @@ import (
 )
 
 type Sign struct {
-	Value int
-	Name  string
-	Beats string
+	Value     int
+	Name      string
+	Beats     string
+	BeatsChar string
 }
 
 var sign_map = make(map[string]Sign)
@@ -20,7 +21,7 @@ var sign_map = make(map[string]Sign)
 func main() {
 	fmt.Println("Starting")
 	generate_signs()
-	lines, err := get_file_lines("test.txt")
+	lines, err := get_file_lines("input.txt")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -30,14 +31,15 @@ func main() {
 }
 
 func calculate_outcome(lines []string, lose_score int, draw_score int, win_score int) (int, int) {
-	total_score := 0
+	p1_total_score := 0
+	p2_total_score := 0
 	for _, line := range lines {
 		elf_char := string(line[0:1])
 		player_char := string(line[2:3])
 		// Convert to signs
 		elf_sign := sign_map[elf_char]
 		player_sign := sign_map[player_char]
-		// Calculate round result
+		// P1 - Calculate round result
 		round_res := player_sign.Value
 		if elf_sign.Name == player_sign.Name {
 			round_res += draw_score
@@ -46,10 +48,29 @@ func calculate_outcome(lines []string, lose_score int, draw_score int, win_score
 		} else {
 			round_res += lose_score
 		}
-		total_score += round_res
+		p1_total_score += round_res
+		// P2 - Calculate round result
+		round_res = 0
+		if player_char == "X" {
+			// Neet to loose
+			player_sign = sign_map[elf_sign.BeatsChar]
+			round_res += player_sign.Value
+			round_res += lose_score
+		} else if player_char == "Y" {
+			// Need draw
+			player_sign = sign_map[elf_char]
+			round_res += player_sign.Value
+			round_res += draw_score
+		} else {
+			// Need to win
+			player_sign = sign_map[sign_map[elf_sign.BeatsChar].BeatsChar]
+			round_res += player_sign.Value
+			round_res += win_score
+		}
+		p2_total_score += round_res
 	}
 
-	return total_score
+	return p1_total_score, p2_total_score
 }
 
 func generate_signs() {
@@ -57,14 +78,17 @@ func generate_signs() {
 	rock.Value = 1
 	rock.Beats = "Scissors"
 	rock.Name = "Rock"
+	rock.BeatsChar = "C"
 	var paper Sign
 	paper.Value = 2
 	paper.Beats = "Rock"
 	paper.Name = "Paper"
+	paper.BeatsChar = "A"
 	var scissors Sign
 	scissors.Value = 3
 	scissors.Beats = "Paper"
 	scissors.Name = "Scissors"
+	scissors.BeatsChar = "B"
 	sign_map["A"] = rock
 	sign_map["B"] = paper
 	sign_map["C"] = scissors
