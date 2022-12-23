@@ -21,7 +21,7 @@ type ElfPair struct {
 // Main function
 func main() {
 	fmt.Println("Starting")
-	pairs, err := get_file_lines("test.txt")
+	pairs, err := get_file_lines("input.txt")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -49,6 +49,10 @@ func count_redundant_pairs(pairs []string) (int, int, error) {
 			total_reds += 1
 		}
 		// Check partial redundancy
+		part_red := is_pair_part_redundant(elf_pair)
+		if part_red {
+			total_partial_reds += 1
+		}
 	}
 	return total_reds, total_partial_reds, nil
 }
@@ -67,8 +71,17 @@ func is_pair_redundant(elf_pair ElfPair) bool {
 }
 
 func is_pair_part_redundant(elf_pair ElfPair) bool {
-	// Check if elf1 is part redundant
-
+	// {...[...]...}
+	//cond1 := elf_pair.Elf1Min <= elf_pair.Elf2Min && elf_pair.Elf1Max >= elf_pair.Elf2Max
+	// [...{...}...]
+	//cond2 := elf_pair.Elf2Min <= elf_pair.Elf1Min && elf_pair.Elf2Max >= elf_pair.Elf1Max
+	// {...[...}...]
+	cond1 := elf_pair.Elf1Min <= elf_pair.Elf2Min && elf_pair.Elf1Max <= elf_pair.Elf2Max && elf_pair.Elf1Max >= elf_pair.Elf2Min
+	// [...{...]...}
+	cond2 := elf_pair.Elf2Min <= elf_pair.Elf1Min && elf_pair.Elf2Max <= elf_pair.Elf1Max && elf_pair.Elf2Max >= elf_pair.Elf1Min
+	if cond1 || cond2 || is_pair_redundant(elf_pair) {
+		return true
+	}
 	return false
 }
 
