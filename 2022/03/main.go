@@ -3,6 +3,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -22,12 +23,66 @@ type Rucksack struct {
 // Main function
 func main() {
 	fmt.Println("Starting")
-	_, err := get_file_lines("test.txt")
+	lines, err := get_file_lines("test.txt")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit((1))
 	}
-	create_empty_rucksack()
+	dups, err := sort_bakckpacks(lines)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit((1))
+	}
+	print_result_assert_one_per_bck(dups)
+}
+
+func print_result_assert_one_per_bck(dups [][]string) error {
+	var res_str string
+	var res []string
+	for _, arr := range dups {
+		if len(arr) != 1 {
+			return errors.New("more than one dup found")
+		}
+		res_str += arr[0]
+		res = append(res, arr[0])
+	}
+	fmt.Printf("Assuming one per sack:\n\t- As str: %s\n\t- As arr: ", res_str)
+	fmt.Println(res)
+	return nil
+}
+
+func sort_bakckpacks(lines []string) ([][]string, error) {
+	var global_dups [][]string
+	for _, line := range lines {
+		// create rucksack
+		rs := create_empty_rucksack()
+		// fill rucksack
+		if len(line)%2 != 0 {
+			return [][]string{}, errors.New("uneven number of items in backpack")
+		}
+		var comp_size int = len(line) / 2
+		for i, char := range line {
+			if i < comp_size {
+				item := rs.Comp1[string(char)]
+				item.Count += 1
+				rs.Comp1[string(char)] = item
+			} else {
+				item := rs.Comp2[string(char)]
+				item.Count += 1
+				rs.Comp2[string(char)] = item
+			}
+		}
+		// check for duplicates
+		var duplicates []string
+		for _, item1 := range rs.Comp1 {
+			item2 := rs.Comp2[item1.Name]
+			if item1.Count > 0 && item2.Count > 0 {
+				duplicates = append(duplicates, item1.Name)
+			}
+		}
+		global_dups = append(global_dups, duplicates)
+	}
+	return global_dups, nil
 }
 
 func create_empty_rucksack() Rucksack {
