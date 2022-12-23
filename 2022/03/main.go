@@ -23,42 +23,32 @@ type Rucksack struct {
 // Main function
 func main() {
 	fmt.Println("Starting")
-	lines, err := get_file_lines("test.txt")
+	lines, err := get_file_lines("input.txt")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit((1))
 	}
-	dups, err := sort_bakckpacks(lines)
+	prio_sum_p1, prio_sum_p2, err := sort_bakckpacks(lines)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit((1))
 	}
-	print_result_assert_one_per_bck(dups)
+	fmt.Printf("Summed up P1 priorities: %d\nSummed up P2 priorities: %d\n", prio_sum_p1, prio_sum_p2)
 }
 
-func print_result_assert_one_per_bck(dups [][]string) error {
-	var res_str string
-	var res []string
-	for _, arr := range dups {
-		if len(arr) != 1 {
-			return errors.New("more than one dup found")
-		}
-		res_str += arr[0]
-		res = append(res, arr[0])
+func sort_bakckpacks(lines []string) (int, int, error) {
+	if len(lines)%3 != 0 {
+		return 0, 0, errors.New("elfes not divideable in groups of 3")
 	}
-	fmt.Printf("Assuming one per sack:\n\t- As str: %s\n\t- As arr: ", res_str)
-	fmt.Println(res)
-	return nil
-}
-
-func sort_bakckpacks(lines []string) ([][]string, error) {
-	var global_dups [][]string
-	for _, line := range lines {
+	var global_prios_p1 int
+	var global_prios_p2 int
+	var ruck_set [3]Rucksack
+	for index, line := range lines {
 		// create rucksack
 		rs := create_empty_rucksack()
 		// fill rucksack
 		if len(line)%2 != 0 {
-			return [][]string{}, errors.New("uneven number of items in backpack")
+			return 0, 0, errors.New("uneven number of items in backpack")
 		}
 		var comp_size int = len(line) / 2
 		for i, char := range line {
@@ -73,16 +63,29 @@ func sort_bakckpacks(lines []string) ([][]string, error) {
 			}
 		}
 		// check for duplicates
-		var duplicates []string
 		for _, item1 := range rs.Comp1 {
 			item2 := rs.Comp2[item1.Name]
 			if item1.Count > 0 && item2.Count > 0 {
-				duplicates = append(duplicates, item1.Name)
+				global_prios_p1 += item1.Priority
 			}
 		}
-		global_dups = append(global_dups, duplicates)
+		// check group
+		ruck_grup_index := index % 3
+		ruck_set[ruck_grup_index] = rs
+		if ruck_grup_index == 2 {
+			// Detect group label
+			for _, item := range rs.Comp1 {
+				i_name := item.Name
+				rs0_stat := ruck_set[0].Comp1[i_name].Count > 0 || ruck_set[0].Comp2[i_name].Count > 0
+				rs1_stat := ruck_set[1].Comp1[i_name].Count > 0 || ruck_set[1].Comp2[i_name].Count > 0
+				rs2_stat := ruck_set[2].Comp1[i_name].Count > 0 || ruck_set[2].Comp2[i_name].Count > 0
+				if rs0_stat && rs1_stat && rs2_stat {
+					global_prios_p2 += item.Priority
+				}
+			}
+		}
 	}
-	return global_dups, nil
+	return global_prios_p1, global_prios_p2, nil
 }
 
 func create_empty_rucksack() Rucksack {
