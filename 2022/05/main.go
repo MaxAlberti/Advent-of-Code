@@ -25,7 +25,7 @@ type Operation struct {
 func main() {
 	fmt.Println("Starting")
 
-	lines, err := get_file_lines("test.txt")
+	lines, err := get_file_lines("input.txt")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -35,27 +35,30 @@ func main() {
 		log.Fatal(err)
 		os.Exit(1)
 	}
-
-	cargo_p1, cargo_p2, err := perform_ops(cargo, ops, false, false)
+	cargo_p1, err := perform_ops_p1(cargo, ops, false)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
-
 	print_result(cargo_p1, 1)
+
+	// P2
+	cargo, ops, err = parse_input(lines)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
+	cargo_p2, err := perform_ops_p2(cargo, ops, false)
+	if err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
 	print_result(cargo_p2, 2)
 }
 
-func perform_ops(cargo Cargo, ops []Operation, debug_p1 bool, debug_p2 bool) (Cargo, Cargo, error) {
-	cargo_p1 := cargo
-	cargo_p2 := cargo
-
-	if debug_p1 {
-		print_cargo(cargo_p1)
-		fmt.Println("---------------")
-	}
-	if debug_p2 {
-		print_cargo(cargo_p2)
+func perform_ops_p1(cargo Cargo, ops []Operation, debug bool) (Cargo, error) {
+	if debug {
+		print_cargo(cargo)
 		fmt.Println("---------------")
 	}
 
@@ -63,29 +66,74 @@ func perform_ops(cargo Cargo, ops []Operation, debug_p1 bool, debug_p2 bool) (Ca
 		// P1
 		num := op.NumCrates
 		for num > 0 {
-			// Perform pop
-			stack, item, err := stack_pop(cargo_p1.Stacks[op.FromIndex])
+			// - Perform pop
+			stack, item, err := stack_pop(cargo.Stacks[op.FromIndex])
+			if err != nil {
+				return Cargo{}, err
+			}
+			cargo.Stacks[op.FromIndex] = stack
+			// - Perform push
+			stack = stack_push(cargo.Stacks[op.ToIndex], item)
+			cargo.Stacks[op.ToIndex] = stack
+			// - Decrement num
+			num -= 1
+		}
+		// - Debug
+		if debug {
+			print_cargo(cargo)
+			fmt.Println("---------------")
+		}
+		/*
+			// P2
+			// - Perform pop
+			stack, items, err := stack_pop_range(cargo_p2.Stacks[op.FromIndex], num)
 			if err != nil {
 				return Cargo{}, Cargo{}, err
 			}
-			cargo_p1.Stacks[op.FromIndex] = stack
-			// perform push
-			stack = stack_push(cargo_p1.Stacks[op.ToIndex], item)
-			cargo_p1.Stacks[op.ToIndex] = stack
-			// decrement num
-			num -= 1
-		}
-		if debug_p1 {
-			print_cargo(cargo_p1)
-			fmt.Println("---------------")
-		}
-		if debug_p2 {
-			print_cargo(cargo_p2)
-			fmt.Println("---------------")
-		}
+			cargo_p2.Stacks[op.FromIndex] = stack
+			// - Perform push
+			stack = stack_push_range(cargo_p2.Stacks[op.ToIndex], items)
+			cargo_p2.Stacks[op.ToIndex] = stack
+			// - Debug
+			if debug_p2 {
+				print_cargo(cargo_p2)
+				fmt.Println("---------------")
+			}
+		*/
 	}
 
-	return cargo_p1, cargo_p2, nil
+	return cargo, nil
+}
+
+func perform_ops_p2(cargo Cargo, ops []Operation, debug bool) (Cargo, error) {
+	if debug {
+		print_cargo(cargo)
+		fmt.Println("---------------")
+	}
+
+	for _, op := range ops {
+		// P2
+		// - Perform pop
+		stack, items, err := stack_pop_range(cargo.Stacks[op.FromIndex], op.NumCrates)
+		if err != nil {
+			return Cargo{}, err
+		}
+		cargo.Stacks[op.FromIndex] = make([]string, len(stack))
+		copy(cargo.Stacks[op.FromIndex], stack)
+		// - Perform push
+		stack = stack_push_range(cargo.Stacks[op.ToIndex], items)
+		cargo.Stacks[op.ToIndex] = make([]string, len(stack))
+		copy(cargo.Stacks[op.ToIndex], stack)
+		// - Debug
+		if debug {
+			print_cargo(cargo)
+			fmt.Println("---------------")
+		}
+
+		// I fucking hate pointers or whatever
+	}
+
+	return cargo, nil
 }
 
 func parse_input(lines []string) (Cargo, []Operation, error) {
@@ -189,6 +237,19 @@ func stack_peek(stack []string) (string, error) {
 	return stack[0], nil
 }
 
+func stack_push_range(stack []string, r []string) []string {
+	return append(r, stack...)
+}
+
+func stack_pop_range(stack []string, num_items int) ([]string, []string, error) {
+	if len(stack) < num_items {
+		return []string{}, []string{}, errors.New("can't pop, stack is too small")
+	}
+	res_i := stack[0:num_items]
+	res_s := stack[num_items:]
+	return res_s, res_i, nil
+}
+
 /*
 	func stack_reverse(stack []string) []string {
 		res := []string{}
@@ -201,6 +262,15 @@ func stack_peek(stack []string) (string, error) {
 		return res
 	}
 */
+
+/*
+func copy_cargo(cargo Cargo) Cargo {
+	var res Cargo
+	res.Stacks = append(res.Stacks, cargo.Stacks...)
+	return res
+}
+*/
+
 func print_cargo(cargo Cargo) {
 	for i, stack := range cargo.Stacks {
 		fmt.Printf("%d: [ ", i+1)
