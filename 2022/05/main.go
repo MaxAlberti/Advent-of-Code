@@ -25,7 +25,7 @@ type Operation struct {
 func main() {
 	fmt.Println("Starting")
 
-	lines, err := get_file_lines("input.txt")
+	lines, err := get_file_lines("test.txt")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -36,7 +36,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cargo_p1, cargo_p2, err := perform_ops(cargo, ops, false, true)
+	cargo_p1, cargo_p2, err := perform_ops(cargo, ops, false, false)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
@@ -223,7 +223,7 @@ func print_result(cargo Cargo, part int) {
 		}
 		res += peek
 	}
-	fmt.Printf("P&d: %s", part, res)
+	fmt.Printf("P%d: %s\n", part, res)
 }
 
 func get_file_lines(filepath string) ([]string, error) {
