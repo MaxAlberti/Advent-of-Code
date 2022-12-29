@@ -1,0 +1,11 @@
+$ cd /
+$ ls
+dir a
+dir b
+$ cd a
+$ cd ..
+$ cd b
+$ ls
+dir c
+$ cd c
+$ cd /
