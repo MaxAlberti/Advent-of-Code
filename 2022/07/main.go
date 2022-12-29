@@ -37,17 +37,52 @@ type FileSystem map[string]FileSysObj
 func main() {
 	fmt.Println("Starting")
 
-	lines, err := get_file_lines("nav_test.txt")
+	lines, err := get_file_lines("input.txt")
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
 
-	_, err = parse_input(lines)
+	fs, err := parse_input(lines)
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
+
+	calc_p1(fs)
+	calc_p2(fs)
+}
+
+func calc_p1(fs FileSystem) {
+	dir_sizes := get_all_fs_dir_size(fs)
+	res := 0
+	for _, size := range dir_sizes {
+		if size <= 100000 {
+			res += size
+		}
+	}
+
+	fmt.Printf("Part1: %d\n", res)
+}
+
+func calc_p2(fs FileSystem) {
+	dir_sizes := get_all_fs_dir_size(fs)
+	used_space := dir_sizes["/"]
+	total_space := 70000000
+	needed_space := 30000000
+	free_space := total_space - used_space
+	min_remove := needed_space - free_space
+
+	// Find folder to delete
+	res_name := ""
+	res_size := total_space
+	for key, size := range dir_sizes {
+		if size >= min_remove && size < res_size {
+			res_name = key
+			res_size = size
+		}
+	}
+	fmt.Printf("Part2: Remove dir '%s' wit a size of %d. (Min %d)\n", res_name, res_size, min_remove)
 }
 
 func parse_input(lines []string) (FileSystem, error) {
@@ -102,7 +137,7 @@ func parse_fso(obj FileSysObj, cur *FileSysObj, fs FileSystem) (*FileSysObj, err
 	fso := fs[fso_path]
 	cur.Children = append(cur.Children, &fso)
 
-	// Update cur TEST
+	// Update cur
 	cur_path := get_fso_path(cur)
 	fs[cur_path] = *cur
 
@@ -200,6 +235,30 @@ func get_fso_path(obj *FileSysObj) string {
 	}
 
 	return path[1:]
+}
+
+func get_fso_size(obj *FileSysObj) int {
+	if obj.IsFile {
+		return obj.Size
+	} else {
+		res := 0
+		for _, c := range obj.Children {
+			res += get_fso_size(c)
+		}
+		return res
+	}
+}
+
+func get_all_fs_dir_size(fs FileSystem) map[string]int {
+	res := make(map[string]int)
+
+	for key, obj := range fs {
+		if !obj.IsFile {
+			res[key] = get_fso_size(&obj)
+		}
+	}
+
+	return res
 }
 
 func get_regex_goup_map(re *regexp.Regexp, match []string) map[string]string {
