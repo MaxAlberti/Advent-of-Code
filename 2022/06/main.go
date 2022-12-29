@@ -28,24 +28,35 @@ func process_messages(messages []string) {
 }
 
 func process_message(message string) string {
-	headers := find_message_headers(message)
-	top_header := "-"
-	if len(headers) > 0 {
-		top_header = fmt.Sprint(headers[0])
+	package_headers, message_headers := find_headers(message)
+	top_package_header := "-"
+	if len(package_headers) > 0 {
+		top_package_header = fmt.Sprint(package_headers[0])
 	}
-	return fmt.Sprintf("\n\t- Top Header: %s\n\t- Headers: %s", top_header, fmt.Sprint(headers))
+	top_message_header := "-"
+	if len(package_headers) > 0 {
+		top_message_header = fmt.Sprint(message_headers[0])
+	}
+	return fmt.Sprintf("\n\t- Top Package Header: %s\n\t- Package Headers: %s\n\t- Top Message Header: %s\n\t- Message Headers: %s", top_package_header, fmt.Sprint(package_headers), top_message_header, fmt.Sprint(message_headers))
 }
 
-func find_message_headers(message string) []int {
-	headers := []int{}
+func find_headers(message string) ([]int, []int) {
+	package_headers := []int{}
+	message_headers := []int{}
 
 	for i := 4; i < len(message); i++ {
 		header := message[i-4 : i]
 		if is_unique_header(header) {
-			headers = append(headers, i)
+			package_headers = append(package_headers, i)
+		}
+		if i >= 14 {
+			header = message[i-14 : i]
+			if is_unique_header(header) {
+				message_headers = append(message_headers, i)
+			}
 		}
 	}
-	return headers
+	return package_headers, message_headers
 }
 
 func is_unique_header(header string) bool {
