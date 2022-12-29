@@ -11,30 +11,27 @@ import (
 	"strconv"
 )
 
-type Directory struct {
-	Name     string
-	Files    []File
-	Children []Directory
-	Parent   *Directory
-}
-
-type File struct {
-	Name string
-	Size int
-}
-
 type Command struct {
 	Name string
 	Arg  string
 }
 
+type FileSysObj struct {
+	Name     string
+	Children []*FileSysObj
+	Parent   *FileSysObj
+	Size     int
+	IsFile   bool
+}
+
 type OutputType int
 
 const (
-	DirectoryType = 0
-	FileType      = 1
-	CommandType   = 2
+	FileSystemType = 1
+	CommandType    = 2
 )
+
+type FileSystem map[string]FileSysObj
 
 // Main function
 func main() {
@@ -53,67 +50,71 @@ func main() {
 	}
 }
 
-func parse_input(lines []string) (Directory, error) {
-	var root Directory
-	root.Name = "/"
-	root.Children = []Directory{}
-	root.Files = []File{}
-	root.Parent = nil
+func parse_input(lines []string) (FileSystem, error) {
+	// Create filesystem
+	file_system := make(FileSystem)
 
-	var current_dir *Directory = nil
+	// Add root
+	file_system["/"] = FileSysObj{Name: "/", Children: []*FileSysObj{}, Parent: nil, Size: 0, IsFile: false}
+
+	var current_dir *FileSysObj
+	rf := file_system["/"]
+	current_dir = &rf
+
 	for index, line := range lines {
-		dir, file, cmd, itype, err := parse_line(line)
+		obj, cmd, itype, err := parse_line(line)
 		if err != nil {
-			return Directory{}, err
+			return FileSystem{}, err
 		}
 		if index == 0 && itype != CommandType {
-			return Directory{}, errors.New("first imput must be a command")
+			return FileSystem{}, errors.New("first imput must be a command")
 		}
-		if itype == DirectoryType {
-			current_dir, err = parse_dir(dir, current_dir)
+		if itype == FileSystemType {
+			current_dir, err = parse_fso(obj, current_dir, file_system)
 			if err != nil {
-				return Directory{}, err
+				return FileSystem{}, err
 			}
-		} else if itype == FileType {
-			_ = file.Name
 		} else if itype == CommandType {
-			current_dir, err = parse_cmd(cmd, &root, current_dir)
+			current_dir, err = parse_cmd(cmd, current_dir, file_system)
 			if err != nil {
-				return Directory{}, err
+				return FileSystem{}, err
 			}
 		}
 	}
 
-	return root, nil
+	return file_system, nil
 }
 
-func parse_dir(dir Directory, cur *Directory) (*Directory, error) {
-	for _, child := range cur.Children {
-		if child.Name == dir.Name {
-			// dir allready exists
-			return cur, nil // error?
-		}
+func parse_fso(obj FileSysObj, cur *FileSysObj, fs FileSystem) (*FileSysObj, error) {
+	// Set the parent dir
+	obj.Parent = cur
+	// Get fso path
+	fso_path := get_fso_path(&obj)
+	// Add to file_system
+	_, ex := fs[fso_path]
+	if ex {
+		// obj exists allready
+		return cur, nil //error?
+	} else {
+		fs[fso_path] = obj
 	}
+	// Add obj to cur's children
+	fso := fs[fso_path]
+	cur.Children = append(cur.Children, &fso)
 
-	/* Works, but can't go up in filesystem anymore bc pointer is changed
-	tst := *cur
-	dir.Parent = &tst
-	tst.Children = append(tst.Children, dir)
-	*cur = tst
-	*/
-	cur.Children = append(cur.Children, Directory{Parent: cur, Name: dir.Name})
-
-	//dir.Parent = cur
-	//cur.Children = append(cur.Children, dir)
-	//cur.Children = append(cur.Children, Directory{Parent: cur, Name: dir.Name})
+	// Update cur TEST
+	cur_path := get_fso_path(cur)
+	fs[cur_path] = *cur
 
 	return cur, nil
 }
 
-func parse_cmd(cmd Command, root *Directory, cur *Directory) (*Directory, error) {
+func parse_cmd(cmd Command, cur *FileSysObj, fs FileSystem) (*FileSysObj, error) {
 	if cmd.Name == "cd" {
 		if cmd.Arg == "/" {
-			return root, nil
+			// Get root pointer
+			rf := fs["/"]
+			return &rf, nil
 		} else if cmd.Arg == ".." {
 			if cur.Parent != nil {
 				return cur.Parent, nil
@@ -123,15 +124,10 @@ func parse_cmd(cmd Command, root *Directory, cur *Directory) (*Directory, error)
 		} else {
 			for _, child := range cur.Children {
 				if child.Name == cmd.Arg {
-					return &child, nil
+					return child, nil
 				}
 			}
 
-			/* ls should run bevore cd
-			cur.Children = append(cur.Children, Directory{Parent: cur, Name: cmd.Arg})
-
-			return &cur.Children[len(cur.Children)-1], nil
-			*/
 			return cur, errors.New("cd destination doesn't exist. (ls should run bevore cd, this should not happen)")
 		}
 	} else if cmd.Name == "ls" {
@@ -142,13 +138,12 @@ func parse_cmd(cmd Command, root *Directory, cur *Directory) (*Directory, error)
 	}
 }
 
-func parse_line(line string) (Directory, File, Command, OutputType, error) {
+func parse_line(line string) (FileSysObj, Command, OutputType, error) {
 	var re_cmd = regexp.MustCompile(`\$ (?P<name>cd|ls) ?(?P<arg>.+)?`)
 	var re_dir = regexp.MustCompile(`dir (?P<name>.+)`)
 	var re_file = regexp.MustCompile(`(?P<size>[0-9]+) (?P<name>.+)`)
 
-	dir := Directory{}
-	file := File{}
+	obj := FileSysObj{}
 	cmd := Command{}
 	var otype OutputType = -1
 
@@ -170,21 +165,41 @@ func parse_line(line string) (Directory, File, Command, OutputType, error) {
 	} else if len(match_dir) > 0 && len(match_cmd) == 0 && len(match_file) == 0 {
 		// Is dir
 		res := get_regex_goup_map(re_dir, match_dir)
-		dir.Name = res["name"]
-		dir.Children = []Directory{}
-		dir.Files = []File{}
-		otype = DirectoryType
+		obj.Name = res["name"]
+		obj.Children = []*FileSysObj{}
+		obj.Parent = nil
+		obj.Size = 0
+		obj.IsFile = false
+		otype = FileSystemType
 	} else if len(match_file) > 0 && len(match_dir) == 0 && len(match_cmd) == 0 {
 		// Is file
 		res := get_regex_goup_map(re_file, match_file)
-		file.Name = res["name"]
-		file.Size, _ = strconv.Atoi(res["size"])
-		otype = FileType
+		obj.Name = res["name"]
+		obj.Children = []*FileSysObj{}
+		obj.Parent = nil
+		obj.Size, _ = strconv.Atoi(res["size"])
+		obj.IsFile = true
+		otype = FileSystemType
 	} else {
-		return dir, file, cmd, otype, errors.New("can't parse line '" + line + "' multiple matches")
+		return obj, cmd, otype, errors.New("can't parse line '" + line + "' multiple matches")
 	}
 
-	return dir, file, cmd, otype, nil
+	return obj, cmd, otype, nil
+}
+
+func get_fso_path(obj *FileSysObj) string {
+	if obj.Parent == nil && obj.Name == "/" {
+		return "/"
+	}
+
+	path := obj.Name
+	cur := obj
+	for cur.Parent != nil {
+		path = cur.Parent.Name + "/" + path
+		cur = cur.Parent
+	}
+
+	return path[1:]
 }
 
 func get_regex_goup_map(re *regexp.Regexp, match []string) map[string]string {

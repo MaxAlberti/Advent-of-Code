@@ -9,3 +9,4 @@ $ ls
 dir c
 $ cd c
 $ cd /
+$ cd a
