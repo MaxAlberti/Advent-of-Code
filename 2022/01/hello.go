@@ -1,10 +1,9 @@
-package main
+package pck_day_01
 
 import (
 	"bufio"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -16,22 +15,24 @@ type Elf struct {
 	Indexes  []int
 }
 
+var inpFile = "input.txt"
+
 // Main function
-func main() {
-	lines, err := get_file_lines("input.txt")
+func run(c *Day01) {
+	lines, err := get_file_lines(c.InputPath)
 	if err != nil {
-		log.Fatal(err)
-		os.Exit((1))
+		c.OutputLog += err.Error()
+		return
 	}
 	elfes, err := group_lines_to_elfes(lines)
 	if err != nil {
-		log.Fatal(err)
-		os.Exit((1))
+		c.OutputLog += err.Error()
+		return
 	}
 	elfes = sort_elfes_by_cals(elfes)
 
 	if len(elfes) > 0 {
-		fmt.Printf("Found %s elfes!\nTop:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\nBottom:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\n",
+		c.OutputLog += fmt.Sprintf("\nFound %s elfes!\nTop:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\nBottom:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\n",
 			fmt.Sprint(len(elfes)),
 			fmt.Sprint(elfes[0].Number),
 			fmt.Sprint(elfes[0].Calories),
@@ -40,22 +41,23 @@ func main() {
 			fmt.Sprint(elfes[len(elfes)-1].Calories),
 			fmt.Sprint(elfes[len(elfes)-1].Indexes))
 	} else {
-		fmt.Println("No elfes fonund...")
+		c.OutputLog += "\nNo elfes fonund..."
 	}
 
 	top_three, err := get_top_three_cals(elfes)
 	if err != nil {
-		log.Fatal(err)
-		os.Exit((1))
+		c.OutputLog += err.Error()
+		return
 	}
-	fmt.Printf("The top3 elfes are carrying %s cals!", fmt.Sprint(top_three))
+	c.OutputLog += fmt.Sprintf("\nThe top3 elfes are carrying %s cals!", fmt.Sprint(top_three))
 }
 
 func get_file_lines(filepath string) ([]string, error) {
 	// open file
+	arr := []string{}
 	f, err := os.Open(filepath)
 	if err != nil {
-		log.Fatal(err)
+		return arr, err
 	}
 	// remember to close the file at the end of the program
 	defer f.Close()
@@ -63,7 +65,6 @@ func get_file_lines(filepath string) ([]string, error) {
 	// read the file line by line using scanner
 	scanner := bufio.NewScanner(f)
 
-	arr := []string{}
 	for scanner.Scan() {
 		// Read the line
 		arr = append(arr, scanner.Text())
@@ -121,7 +122,7 @@ func sort_elfes_by_cals(elfes []Elf) []Elf {
 
 func get_top_three_cals(elfes []Elf) (int, error) {
 	if len(elfes) < 3 {
-		return 0, errors.New("Not enough elfes!")
+		return 0, errors.New("not enough elfes")
 	}
 
 	elfes = sort_elfes_by_cals(elfes)

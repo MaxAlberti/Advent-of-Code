@@ -16,3 +16,7 @@ vendor/
 
 # Build folders
 bin/
+
+# UI
+2022/ui/bin/
+2022/ui/web/
