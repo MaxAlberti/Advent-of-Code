@@ -1,6 +1,8 @@
 package pck_day_01
 
 import (
+	"fmt"
+
 	"github.com/maxence-charriere/go-app/v9/pkg/app"
 )
 
@@ -10,7 +12,7 @@ type Day01 struct {
 	DayStr      string
 	Description string
 	Status      string
-	InputPath   string
+	Input       string
 	OutputLog   string
 }
 
@@ -26,7 +28,7 @@ func CreateDay01() Day01 {
 }
 
 func (c *Day01) OnNav(ctx app.Context) {
-	c.InputPath = inpFile
+	c.Input = ""
 	c.OutputLog = ""
 	c.Status = "-NotRunYet-"
 }
@@ -53,11 +55,14 @@ func (c *Day01) Render() app.UI {
 		),
 		app.Div().Body(
 			app.A().Text("Input File:"),
-			app.Input().
-				Type("text").
-				Value(c.InputPath).
-				AutoFocus(true).
-				OnChange(c.ValueTo(&c.InputPath)),
+			app.Div().Body(
+				app.Form().Method("post").EncType("multipart/form-data").Body(
+					app.Div().Body(
+						app.Label().For("my_input").Text("Choose file to upload: "),
+						app.Input().Type("file").ID("my_input").Name("my_input").Accept(".txt").OnChange(c.onFileUpload),
+					),
+				),
+			),
 		),
 		app.Div().Body(
 			app.Button().Text("Run").OnClick(c.runBtnClick),
@@ -66,10 +71,51 @@ func (c *Day01) Render() app.UI {
 		app.Div().Body(
 			app.A().Text("Output:"),
 			app.Div().Body(
-				app.Textarea().Cols(60).Rows(10).Text(c.OutputLog),
+				app.Textarea().Style("width", "1000px").Style("height", "500px").Cols(60).Rows(10).Text(c.OutputLog),
 			),
 		),
 	)
+}
+
+func (c *Day01) onFileUpload(ctx app.Context, e app.Event) {
+	c.OutputLog += "\nFile uploaded"
+	files := ctx.JSSrc().Get("files")
+	if !files.Truthy() || files.Get("length").Int() == 0 {
+		fmt.Println("file not found")
+		return
+	}
+
+	file := files.Index(0)
+	var close func()
+
+	onFileLoad := app.FuncOf(func(this app.Value, args []app.Value) interface{} {
+		event := args[0]
+		content := event.Get("target").Get("result")
+
+		c.Input = content.String()
+
+		close()
+		return nil
+	})
+
+	onFileLoadError := app.FuncOf(func(this app.Value, args []app.Value) interface{} {
+		// Your error handling...
+		c.OutputLog += "\nError loading input file"
+
+		close()
+		return nil
+	})
+
+	// To release resources when callback are called.
+	close = func() {
+		onFileLoad.Release()
+		onFileLoadError.Release()
+	}
+
+	reader := app.Window().Get("FileReader").New()
+	reader.Set("onload", onFileLoad)
+	reader.Set("onerror", onFileLoadError)
+	reader.Call("readAsText", file, "UTF-8")
 }
 
 func (c *Day01) runBtnClick(ctx app.Context, e app.Event) {

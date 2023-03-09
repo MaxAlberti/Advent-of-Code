@@ -1,12 +1,11 @@
 package pck_day_01
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
-	"os"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 type Elf struct {
@@ -15,15 +14,10 @@ type Elf struct {
 	Indexes  []int
 }
 
-var inpFile = "input.txt"
-
 // Main function
 func run(c *Day01) {
-	lines, err := get_file_lines(c.InputPath)
-	if err != nil {
-		c.OutputLog += err.Error()
-		return
-	}
+	lines := get_file_lines(c.Input)
+
 	elfes, err := group_lines_to_elfes(lines)
 	if err != nil {
 		c.OutputLog += err.Error()
@@ -52,29 +46,8 @@ func run(c *Day01) {
 	c.OutputLog += fmt.Sprintf("\nThe top3 elfes are carrying %s cals!", fmt.Sprint(top_three))
 }
 
-func get_file_lines(filepath string) ([]string, error) {
-	// open file
-	arr := []string{}
-	f, err := os.Open(filepath)
-	if err != nil {
-		return arr, err
-	}
-	// remember to close the file at the end of the program
-	defer f.Close()
-
-	// read the file line by line using scanner
-	scanner := bufio.NewScanner(f)
-
-	for scanner.Scan() {
-		// Read the line
-		arr = append(arr, scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		return []string{}, err
-	} else {
-		return arr, err
-	}
+func get_file_lines(input string) []string {
+	return strings.Split(input, "\n")
 }
 
 func group_lines_to_elfes(lines []string) ([]Elf, error) {
