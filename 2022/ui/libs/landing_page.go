@@ -1,20 +1,14 @@
-package main
+package libs
 
 import (
-	pck_day_01 "adventofcode/2022/01"
-	"log"
-	"net/http"
-
 	"github.com/maxence-charriere/go-app/v9/pkg/app"
 )
 
-var d01 = pck_day_01.CreateDay01()
-
-type landingPage struct {
+type LandingPage struct {
 	app.Compo
 }
 
-func (c *landingPage) Render() app.UI {
+func (c *LandingPage) Render() app.UI {
 	return app.Div().Body(
 		app.H1().
 			Class("title").
@@ -30,27 +24,9 @@ func (c *landingPage) Render() app.UI {
 						app.Td().Style("border", "1px solid black").Text("Description"),
 						app.Td().Style("border", "1px solid black").Text("Link"),
 					),
-					d01.GetLandingPageTable(),
+					Day01.GetLandingPageTable(),
 				),
 			),
 		),
 	)
-}
-
-func route_days() {
-	app.Route("/day01", &d01)
-}
-
-func main() {
-	app.Route("/", &landingPage{})
-	route_days()
-	app.RunWhenOnBrowser()
-	http.Handle("/", &app.Handler{
-		Name:        "AdventOfCode2022",
-		Description: "Small UI for my Advent of Code 2022",
-	})
-
-	if err := http.ListenAndServe(":8000", nil); err != nil {
-		log.Fatal(err)
-	}
 }

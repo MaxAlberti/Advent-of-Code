@@ -1,4 +1,4 @@
-module adventofcode/2022/ui
+module adventofcode/2022/ui/server
 
 go 1.20
 

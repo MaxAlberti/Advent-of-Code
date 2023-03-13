@@ -1,6 +1,7 @@
 go 1.19
 
-use ./2022/ui
+use ./2022/ui/server
+use ./2022/ui/libs
 use ./2022/01
 use ./2022/02
 use ./2022/03
