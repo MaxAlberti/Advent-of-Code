@@ -1,10 +1,13 @@
-package pck_day_01
+package libs
 
 import (
+	pck_day_01 "adventofcode/2022/01"
 	"fmt"
 
 	"github.com/maxence-charriere/go-app/v9/pkg/app"
 )
+
+var O_Day01 = CreateDay01()
 
 type Day01 struct {
 	app.Compo
@@ -121,7 +124,11 @@ func (c *Day01) onFileUpload(ctx app.Context, e app.Event) {
 func (c *Day01) runBtnClick(ctx app.Context, e app.Event) {
 	c.Status = "Running..."
 	c.Update()
-	run(c)
+	c_msg := make(chan string)
+	go pck_day_01.Run(c.Input, c_msg)
+	for msg := range c_msg {
+		c.OutputLog += msg
+	}
 	c.Status = "Done!"
 	c.Update()
 }

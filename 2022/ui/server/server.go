@@ -9,7 +9,7 @@ import (
 )
 
 func route_days() {
-	app.Route("/day01", &libs.Day01)
+	app.Route("/day01", &libs.O_Day01)
 }
 
 func main() {

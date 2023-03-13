@@ -15,18 +15,19 @@ type Elf struct {
 }
 
 // Main function
-func run(c *Day01) {
-	lines := get_file_lines(c.Input)
+func Run(input string, c_msg chan string) {
+	lines := get_file_lines(input)
 
 	elfes, err := group_lines_to_elfes(lines)
 	if err != nil {
-		c.OutputLog += err.Error()
+		c_msg <- err.Error()
+		close(c_msg)
 		return
 	}
 	elfes = sort_elfes_by_cals(elfes)
 
 	if len(elfes) > 0 {
-		c.OutputLog += fmt.Sprintf("\nFound %s elfes!\nTop:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\nBottom:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\n",
+		c_msg <- fmt.Sprintf("\nFound %s elfes!\nTop:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\nBottom:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\n",
 			fmt.Sprint(len(elfes)),
 			fmt.Sprint(elfes[0].Number),
 			fmt.Sprint(elfes[0].Calories),
@@ -35,15 +36,17 @@ func run(c *Day01) {
 			fmt.Sprint(elfes[len(elfes)-1].Calories),
 			fmt.Sprint(elfes[len(elfes)-1].Indexes))
 	} else {
-		c.OutputLog += "\nNo elfes fonund..."
+		c_msg <- "\nNo elfes fonund..."
 	}
 
 	top_three, err := get_top_three_cals(elfes)
 	if err != nil {
-		c.OutputLog += err.Error()
+		c_msg <- err.Error()
+		close(c_msg)
 		return
 	}
-	c.OutputLog += fmt.Sprintf("\nThe top3 elfes are carrying %s cals!", fmt.Sprint(top_three))
+	c_msg <- fmt.Sprintf("\nThe top3 elfes are carrying %s cals!", fmt.Sprint(top_three))
+	close(c_msg)
 }
 
 func get_file_lines(input string) []string {
