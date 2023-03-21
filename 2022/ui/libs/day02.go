@@ -1,27 +1,27 @@
 package libs
 
 import (
-	pck_day_01 "adventofcode/2022/01"
+	pck_day_02 "adventofcode/2022/02"
 
 	"github.com/maxence-charriere/go-app/v9/pkg/app"
 )
 
-var O_Day01 = CreateDay01()
+var O_Day02 = CreateDay02()
 
-type Day01 struct {
+type Day02 struct {
 	Day
 }
 
-func CreateDay01() Day01 {
-	d := Day01{}
-	d.DayStr = "Day01"
-	d.Description = "Description for Day 01"
-	d.DayUrl = "/day01"
+func CreateDay02() Day02 {
+	d := Day02{}
+	d.DayStr = "Day02"
+	d.Description = "Description for Day 02"
+	d.DayUrl = "/day02"
 
 	return d
 }
 
-func (c *Day01) Render() app.UI {
+func (c *Day02) Render() app.UI {
 	return app.Div().Body(
 		c.generateTop(),
 		app.Div().Body(
@@ -32,11 +32,11 @@ func (c *Day01) Render() app.UI {
 	)
 }
 
-func (c *Day01) runBtnClick(ctx app.Context, e app.Event) {
+func (c *Day02) runBtnClick(ctx app.Context, e app.Event) {
 	c.Status = "Running..."
 	c.Update()
 	c_msg := make(chan string)
-	go pck_day_01.Run(c.Input, c_msg)
+	go pck_day_02.Run(c.Input, c_msg)
 	for msg := range c_msg {
 		c.log(msg)
 	}

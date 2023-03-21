@@ -25,6 +25,7 @@ func (c *LandingPage) Render() app.UI {
 						app.Td().Style("border", "1px solid black").Text("Link"),
 					),
 					O_Day01.GetLandingPageTable(),
+					O_Day02.GetLandingPageTable(),
 				),
 			),
 		),

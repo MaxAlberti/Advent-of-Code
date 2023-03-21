@@ -1,11 +1,8 @@
-// First Go program
-package main
+package pck_day_02
 
 import (
-	"bufio"
 	"fmt"
-	"log"
-	"os"
+	"strings"
 )
 
 type Sign struct {
@@ -17,17 +14,13 @@ type Sign struct {
 
 var sign_map = make(map[string]Sign)
 
-// Main function
-func main() {
-	fmt.Println("Starting")
+func Run(input string, c_msg chan string) {
+	c_msg <- "Starting"
 	generate_signs()
-	lines, err := get_file_lines("input.txt")
-	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
+	lines := get_file_lines(input)
 	result1, result2 := calculate_outcome(lines, 0, 3, 6)
-	fmt.Printf("P1: Total player score: %d\nP2: Total player score: %d", result1, result2)
+	c_msg <- fmt.Sprintf("P1: Total player score: %d\nP2: Total player score: %d", result1, result2)
+	close(c_msg)
 }
 
 func calculate_outcome(lines []string, lose_score int, draw_score int, win_score int) (int, int) {
@@ -97,27 +90,6 @@ func generate_signs() {
 	sign_map["Z"] = scissors
 }
 
-func get_file_lines(filepath string) ([]string, error) {
-	// open file
-	f, err := os.Open(filepath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// remember to close the file at the end of the program
-	defer f.Close()
-
-	// read the file line by line using scanner
-	scanner := bufio.NewScanner(f)
-
-	arr := []string{}
-	for scanner.Scan() {
-		// Read the line
-		arr = append(arr, scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		return []string{}, err
-	} else {
-		return arr, err
-	}
+func get_file_lines(input string) []string {
+	return strings.Split(input, "\n")
 }

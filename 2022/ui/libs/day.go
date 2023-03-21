@@ -37,7 +37,7 @@ func (c *Day) Render() app.UI {
 	return app.Div().Body(
 		c.generateTop(),
 		app.Div().Body(
-			app.Button().Text("Run").ID("RunButton").OnClick(c.runBtnClick),
+			app.Button().Text("Run").OnClick(c.runBtnClick),
 			app.A().Text("\t"+c.Status),
 		),
 		c.generateBottom(),
@@ -48,9 +48,9 @@ func (c *Day) generateTop() app.UI {
 	return app.Div().Body(
 		app.H1().
 			Class("title").
-			Text("Advent of Code 2022 - Day01"),
+			Text("Advent of Code 2022 - "+c.DayStr),
 		app.Div().Body(
-			app.A().Text("Solution for Day 01. Click "),
+			app.A().Text("Solution for "+c.DayStr+". Click "),
 			app.A().Href("/").Text("here"),
 			app.A().Text(" to return."),
 		),
