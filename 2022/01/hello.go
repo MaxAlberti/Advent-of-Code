@@ -27,7 +27,7 @@ func Run(input string, c_msg chan string) {
 	elfes = sort_elfes_by_cals(elfes)
 
 	if len(elfes) > 0 {
-		c_msg <- fmt.Sprintf("\nFound %s elfes!\nTop:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\nBottom:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\n",
+		c_msg <- fmt.Sprintf("Found %s elfes!\nTop:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\nBottom:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\n",
 			fmt.Sprint(len(elfes)),
 			fmt.Sprint(elfes[0].Number),
 			fmt.Sprint(elfes[0].Calories),
@@ -36,7 +36,7 @@ func Run(input string, c_msg chan string) {
 			fmt.Sprint(elfes[len(elfes)-1].Calories),
 			fmt.Sprint(elfes[len(elfes)-1].Indexes))
 	} else {
-		c_msg <- "\nNo elfes fonund..."
+		c_msg <- "No elfes fonund..."
 	}
 
 	top_three, err := get_top_three_cals(elfes)
