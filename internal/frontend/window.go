@@ -11,7 +11,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-const preferenceCurrentYear = "currentYear"
+const preferenceCurrentYear = "Welcome"
 
 type aocYear struct {
 	Title, Intro string
@@ -88,7 +88,7 @@ func makeNav(setYear func(year aocYear), loadPrevious bool) fyne.CanvasObject {
 		OnSelected: func(uid string) {
 			if t, ok := FV.Years[uid]; ok {
 				FV.App.Preferences().SetString(preferenceCurrentYear, uid)
-				setYear(t)
+				setYear(t) //Closure
 			}
 		},
 	}
