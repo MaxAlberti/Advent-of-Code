@@ -14,10 +14,10 @@ import (
 const preferenceCurrentYear = "Welcome"
 
 type frontendVars struct {
-	App       fyne.App
-	Window    fyne.Window
-	Years     map[string]aocFrontendItem
-	YearIndex map[string][]string
+	App     fyne.App
+	Window  fyne.Window
+	FI      map[string]aocFrontendItem
+	FIIndex map[string][]string
 }
 
 var FV frontendVars
@@ -60,10 +60,10 @@ func makeWindow() fyne.CanvasObject {
 func makeNav(setYear func(year aocFrontendItem), loadPrevious bool) fyne.CanvasObject {
 	tree := &widget.Tree{
 		ChildUIDs: func(uid string) []string {
-			return FV.YearIndex[uid]
+			return FV.FIIndex[uid]
 		},
 		IsBranch: func(uid string) bool {
-			children, ok := FV.YearIndex[uid]
+			children, ok := FV.FIIndex[uid]
 
 			return ok && len(children) > 0
 		},
@@ -71,7 +71,7 @@ func makeNav(setYear func(year aocFrontendItem), loadPrevious bool) fyne.CanvasO
 			return widget.NewLabel("Collection Widgets")
 		},
 		UpdateNode: func(uid string, branch bool, obj fyne.CanvasObject) {
-			t, ok := FV.Years[uid]
+			t, ok := FV.FI[uid]
 			if !ok {
 				fyne.LogError("Missing year panel: "+uid, nil)
 				return
@@ -80,7 +80,7 @@ func makeNav(setYear func(year aocFrontendItem), loadPrevious bool) fyne.CanvasO
 			obj.(*widget.Label).TextStyle = fyne.TextStyle{}
 		},
 		OnSelected: func(uid string) {
-			if t, ok := FV.Years[uid]; ok {
+			if t, ok := FV.FI[uid]; ok {
 				FV.App.Preferences().SetString(preferenceCurrentYear, uid)
 				setYear(t) //Closure
 			}
