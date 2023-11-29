@@ -13,16 +13,10 @@ import (
 
 const preferenceCurrentYear = "Welcome"
 
-type aocYear struct {
-	Title, Intro string
-	View         func(w fyne.Window) fyne.CanvasObject
-	SupportWeb   bool
-}
-
 type frontendVars struct {
 	App       fyne.App
 	Window    fyne.Window
-	Years     map[string]aocYear
+	Years     map[string]aocFrontendItem
 	YearIndex map[string][]string
 }
 
@@ -35,7 +29,7 @@ func OpenMainWindow() {
 	FV = frontendVars{}
 	FV.App = a
 	FV.Window = w
-	makeYears()
+	makeNavigation()
 
 	w.SetContent(makeWindow())
 	w.SetMaster()
@@ -49,7 +43,7 @@ func makeWindow() fyne.CanvasObject {
 	title := widget.NewLabel("Component name")
 	intro := widget.NewLabel("An introduction would probably go\nhere, as well as a")
 	intro.Wrapping = fyne.TextWrapWord
-	setYear := func(y aocYear) {
+	setYear := func(y aocFrontendItem) {
 		title.SetText(y.Title)
 		intro.SetText(y.Intro)
 
@@ -63,7 +57,7 @@ func makeWindow() fyne.CanvasObject {
 	return container.NewHSplit(makeNav(setYear, true), main)
 }
 
-func makeNav(setYear func(year aocYear), loadPrevious bool) fyne.CanvasObject {
+func makeNav(setYear func(year aocFrontendItem), loadPrevious bool) fyne.CanvasObject {
 	tree := &widget.Tree{
 		ChildUIDs: func(uid string) []string {
 			return FV.YearIndex[uid]
