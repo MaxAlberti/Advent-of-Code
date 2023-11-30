@@ -15,6 +15,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
+	"github.com/MaxAlberti/Advent-of-Code/internal/aoc"
 )
 
 type aocDay struct {
@@ -25,6 +26,13 @@ type aocDay struct {
 	Input         string
 	SoFilePath    string
 	Plugin        *plugin.Plugin
+	Assertions    []Assertion
+}
+
+type Assertion struct {
+	aoc.Assertion
+	IB binding.String
+	OB binding.String
 }
 
 func (d aocDay) String() string {
@@ -156,13 +164,67 @@ func makeDayInputView(d aocDay) fyne.CanvasObject {
 func makeDayAssertsView(d aocDay) fyne.CanvasObject {
 	head := widget.NewLabel("Add assertions here!")
 
-	content := container.NewScroll(
-		widget.NewLabel("Placeholder"),
-	)
+	content := container.NewDocTabs()
+	i := 0
+	// make view
+	fn_makeEmptyTab := func() *container.TabItem {
+		i++
+		ass := Assertion{}
+		d.Assertions = append(d.Assertions, ass)
 
-	tail := widget.NewLabel("")
+		d.Assertions[len(d.Assertions)-1].IB = binding.BindString(&d.Assertions[len(d.Assertions)-1].Input)
+		d.Assertions[len(d.Assertions)-1].OB = binding.BindString(&d.Assertions[len(d.Assertions)-1].Output)
+
+		return makeDayAssertsTabItem(i, &d.Assertions[len(d.Assertions)-1])
+	}
+	content.CreateTab = fn_makeEmptyTab
+	// Add existing asserts
+	for j := range d.Assertions {
+		i++
+
+		d.Assertions[j].IB = binding.BindString(&d.Assertions[j].Input)
+		d.Assertions[j].OB = binding.BindString(&d.Assertions[j].Output)
+
+		content.Append(makeDayAssertsTabItem(i, &d.Assertions[j]))
+	}
+
+	tail := widget.NewButton("Save Assertions", func() {
+		fmt.Println(d.Assertions)
+	})
 
 	return container.NewBorder(head, tail, nil, nil, content)
+}
+
+func makeDayAssertsTabItem(i int, ass *Assertion) *container.TabItem {
+	ientry := widget.NewMultiLineEntry()
+	ientry.Wrapping = fyne.TextWrapOff
+	ientry.Scroll = container.ScrollBoth
+	ientry.Bind(ass.IB)
+
+	oentry := widget.NewMultiLineEntry()
+	oentry.Wrapping = fyne.TextWrapOff
+	oentry.Scroll = container.ScrollBoth
+	oentry.Bind(ass.OB)
+
+	return container.NewTabItem(
+		fmt.Sprintf("Assertion %d", i),
+		container.NewHSplit(
+			container.NewBorder(
+				widget.NewLabel("Input"),
+				nil,
+				nil,
+				nil,
+				ientry,
+			),
+			container.NewBorder(
+				widget.NewLabel("Output"),
+				nil,
+				nil,
+				nil,
+				oentry,
+			),
+		),
+	)
 }
 
 func makeDayRunView(d aocDay) fyne.CanvasObject {
@@ -185,6 +247,9 @@ func makeDayRunView(d aocDay) fyne.CanvasObject {
 			case "GetInp":
 				com <- d.Input
 			case "GetAss":
+				for _, ass := range d.Assertions {
+					com <- ass.Assertion
+				}
 				close(com)
 			default:
 				fmt.Println("Error - Unhandled command in com channel, closing")

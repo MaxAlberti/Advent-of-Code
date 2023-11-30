@@ -1,6 +1,8 @@
 package aoc
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Assertion struct {
 	Input  string
@@ -38,8 +40,8 @@ func GetData(inp chan any) (chan string, string, []Assertion) {
 	inp <- "GetAss"
 	for resp := range inp {
 		anyValue = resp
-		if arrValue, ok := anyValue.([2]string); ok {
-			assertions = append(assertions, Assertion{Input: arrValue[0], Output: arrValue[1]})
+		if ass, ok := anyValue.(Assertion); ok {
+			assertions = append(assertions, ass)
 		} else {
 			fmt.Println("Error - Could not resolve output channel, ass")
 		}
