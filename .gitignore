@@ -18,3 +18,4 @@ vendor/
 bin/
 
 Deprecated/
+pkg/aocyear/*/*/*.txt
