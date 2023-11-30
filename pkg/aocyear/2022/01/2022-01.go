@@ -90,7 +90,6 @@ func Run(inp chan any) {
 	top_three, err := get_top_three_cals(elfes)
 	if err != nil {
 		out <- err.Error()
-		close(out)
 		return
 	}
 	out <- fmt.Sprintf("\nThe top3 elfes are carrying %s cals!", fmt.Sprint(top_three))
