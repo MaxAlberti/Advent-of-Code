@@ -1,57 +1,31 @@
 package main
 
-import "fmt"
+import "github.com/MaxAlberti/Advent-of-Code/internal/aoc"
+
+// ----------------------
 
 var Intro string = "TBD - Intro"
 
-type Assertion struct {
-	Input  string
-	Output string
+var out chan string
+
+func Run(inp chan any) {
+	o, i, a := aoc.GetData(inp)
+	out = o
+	defer close(out)
+	run(i, a)
 }
 
-func (ass Assertion) String() string {
-	return fmt.Sprintf("Assert: %v == %v", ass.Input, ass.Output)
+func print(m string) {
+	out <- m
 }
 
-func getData(inp chan any) (chan string, string, []Assertion) {
-	var out chan string
-	var input string
-	var assertions []Assertion
-
-	// Get out chan
-	inp <- "GetOut"
-	var anyValue interface{} = <-inp
-	if channelValue, ok := anyValue.(chan string); ok {
-		out = channelValue
-	} else {
-		fmt.Println("Error - Could not resolve output channel, out")
-	}
-
-	// Get input
-	inp <- "GetInp"
-	anyValue = <-inp
-	if strValue, ok := anyValue.(string); ok {
-		input = strValue
-	} else {
-		fmt.Println("Error - Could not resolve output channel, inp")
-	}
-
-	// Get Asserts
-	inp <- "GetAss"
-	for resp := range inp {
-		anyValue = resp
-		if arrValue, ok := anyValue.([2]string); ok {
-			assertions = append(assertions, Assertion{Input: arrValue[0], Output: arrValue[1]})
-		} else {
-			fmt.Println("Error - Could not resolve output channel, ass")
-		}
-	}
-
-	return out, input, assertions
+func println(m string) {
+	out <- m + "\n"
 }
+
+// ^^^^ TEMPLATE ^^^^^^^^
 
 // Main function
-func Run(inp chan any) {
-	out, _, _ := getData(inp)
-	defer close(out)
+func run(input string, asserts []aoc.Assertion) {
+
 }

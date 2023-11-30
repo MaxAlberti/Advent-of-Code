@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
-	"strings"
 
-	"github.com/MaxAlberti/Advent-of-Code/pkg/aoc"
+	"github.com/MaxAlberti/Advent-of-Code/internal/aoc"
+	"github.com/MaxAlberti/Advent-of-Code/internal/shared"
 )
 
 // ----------------------
@@ -41,7 +41,7 @@ type Elf struct {
 
 // Main function
 func run(input string, asserts []aoc.Assertion) {
-	lines := get_file_lines(input)
+	lines := shared.GetStringLines(input)
 
 	elfes, err := group_lines_to_elfes(lines)
 	if err != nil {
@@ -69,10 +69,6 @@ func run(input string, asserts []aoc.Assertion) {
 		return
 	}
 	println(fmt.Sprintf("\nThe top3 elfes are carrying %s cals!", fmt.Sprint(top_three)))
-}
-
-func get_file_lines(input string) []string {
-	return strings.Split(input, "\n")
 }
 
 func group_lines_to_elfes(lines []string) ([]Elf, error) {
