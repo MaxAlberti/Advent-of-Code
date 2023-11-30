@@ -103,13 +103,14 @@ func getAoCYears() []aocYear {
 					fmt.Println("Warning - Can't parse day before year, Skipped")
 					return nil
 				}
-				_, sofile, inputfile := getDayData(path)
+				_, sofile, inputfile, assfile := getDayData(path)
 				intro, p := loadDayPlugin(d.Name(), sofile, inputfile)
 				day := aocDay{
 					YearName:      cur_year.Title,
 					FolderPath:    path,
 					InputFilePath: inputfile,
 					SoFilePath:    sofile,
+					AssFilePath:   assfile,
 					Plugin:        p,
 					aocFrontendItem: aocFrontendItem{
 						Title:      cur_year.Title + " Day " + d.Name(),
@@ -127,6 +128,7 @@ func getAoCYears() []aocYear {
 						day.Input = string(content)
 					}
 				}
+				day = day.LoadDayAsserts()
 				day = day.GenerateView()
 
 				cur_year.Days = append(cur_year.Days, day)

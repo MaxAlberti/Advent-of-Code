@@ -16,6 +16,7 @@ import (
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 	"github.com/MaxAlberti/Advent-of-Code/internal/aoc"
+	"github.com/MaxAlberti/Advent-of-Code/internal/shared"
 )
 
 type aocDay struct {
@@ -25,6 +26,7 @@ type aocDay struct {
 	InputFilePath string
 	Input         string
 	SoFilePath    string
+	AssFilePath   string
 	Plugin        *plugin.Plugin
 	Assertions    []Assertion
 }
@@ -56,7 +58,29 @@ func (d aocDay) GenerateView() aocDay {
 	return d
 }
 
-func getDayData(dir string) (gofile string, sofile string, inputfile string) {
+func (d aocDay) LoadDayAsserts() aocDay {
+	var jsonstr string
+	if shared.FileExists(d.AssFilePath) {
+		content, err := os.ReadFile(d.AssFilePath)
+		if err != nil {
+			fyne.LogError("Error loading file "+d.AssFilePath, err)
+			return d
+		} else {
+			jsonstr = string(content)
+		}
+	}
+
+	d.Assertions = append(d.Assertions, Assertion{Assertion: aoc.Assertion{Input: "T1", Output: "T2"}})
+
+	// Add bindings
+	for j := range d.Assertions {
+		d.Assertions[j].IB = binding.BindString(&d.Assertions[j].Input)
+		d.Assertions[j].OB = binding.BindString(&d.Assertions[j].Output)
+	}
+	return d
+}
+
+func getDayData(dir string) (gofile string, sofile string, inputfile string, assfile string) {
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -73,6 +97,8 @@ func getDayData(dir string) (gofile string, sofile string, inputfile string) {
 				sofile = path
 			case info.Name() == "input.txt":
 				inputfile = path
+			case info.Name() == "asserts.json":
+				assfile = path
 			}
 		}
 		return nil
@@ -181,9 +207,6 @@ func makeDayAssertsView(d aocDay) fyne.CanvasObject {
 	// Add existing asserts
 	for j := range d.Assertions {
 		i++
-
-		d.Assertions[j].IB = binding.BindString(&d.Assertions[j].Input)
-		d.Assertions[j].OB = binding.BindString(&d.Assertions[j].Output)
 
 		content.Append(makeDayAssertsTabItem(i, &d.Assertions[j]))
 	}
