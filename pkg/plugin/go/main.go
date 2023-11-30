@@ -43,4 +43,30 @@ func main() {
 	for msg := range ch {
 		fmt.Println(msg)
 	}
+
+	run, err := p.Lookup("Run")
+	if err != nil {
+		panic(err)
+	}
+	com := make(chan any)
+	out := make(chan string)
+	go run.(func(ch chan any))(com)
+	for msg := range com {
+		switch msg {
+		case "GetOut":
+			com <- out
+		case "GetInp":
+			com <- "My Input"
+		case "GetAss":
+			com <- [2]string{"Inp1", "Out1"}
+			com <- [2]string{"Inp2", "Out2"}
+			close(com)
+		default:
+			fmt.Println("Error - Unhandled command in com channel, closing")
+			close(com)
+		}
+	}
+	for msg := range out {
+		fmt.Println(msg)
+	}
 }
