@@ -248,7 +248,7 @@ func (d aocDay) GenerateView() aocDay {
 
 		tabs := container.NewAppTabs(
 			container.NewTabItem("Input", makeDayInputView(d)),
-			container.NewTabItem("Asserts", widget.NewLabel("Content of tab 2")),
+			container.NewTabItem("Asserts", makeDayAssertsView(d)),
 			container.NewTabItem("Run", widget.NewLabel("Content of tab 3")),
 		)
 
@@ -326,6 +326,18 @@ func makeDayInputView(d aocDay) fyne.CanvasObject {
 			fd.Show()
 		}),
 	)
+
+	return container.NewBorder(head, tail, nil, nil, content)
+}
+
+func makeDayAssertsView(d aocDay) fyne.CanvasObject {
+	head := widget.NewLabel("Add assertions here!")
+
+	content := container.NewScroll(
+		widget.NewLabel("Placeholder"),
+	)
+
+	tail := widget.NewLabel("")
 
 	return container.NewBorder(head, tail, nil, nil, content)
 }
