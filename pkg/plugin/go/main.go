@@ -32,7 +32,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	h.(func(a ...any))("Hello!")
+	h.(func(a ...any))("Hello!", 123, []int{1, 2, 3})
 
 	i, err := p.Lookup("I")
 	if err != nil {

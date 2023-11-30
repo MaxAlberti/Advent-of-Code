@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"reflect"
+)
 
 // go build -buildmode=plugin -o ./pkg/plugin/so/plugin.so ./pkg/plugin/so/plugin.go
 
@@ -16,7 +19,15 @@ func G(s string) {
 
 func H(a ...any) {
 	for _, s := range a {
-		println(s)
+		reflect.TypeOf(s)
+		switch reflect.TypeOf(s) {
+		case reflect.TypeOf(""):
+			fmt.Printf("Type: string, Val: %v\n", s)
+		case reflect.TypeOf(1):
+			fmt.Printf("Type: int, Val: %v\n", s)
+		default:
+			fmt.Printf("Type: unhandeled, Val: %v\n", s)
+		}
 	}
 }
 
