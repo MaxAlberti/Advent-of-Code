@@ -1,8 +1,11 @@
 package frontend
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"plugin"
@@ -11,6 +14,9 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -33,6 +39,7 @@ type aocDay struct {
 	YearName      string
 	FolderPath    string
 	InputFilePath string
+	Input         string
 	SoFilePath    string
 	Plugin        *plugin.Plugin
 }
@@ -66,15 +73,13 @@ func makeNavigation() {
 
 func getAoCYears() []aocYear {
 	res := []aocYear{}
-	mydir, err := os.Getwd()
-	if err != nil {
-		fyne.LogError("", err)
+	if FV.WorkingDir == "" {
 		return res
 	}
-	root := mydir + "/pkg/aocyear"
+	root := FV.WorkingDir + "/pkg/aocyear"
 	var cur_year aocYear
 	cur_year.Title = ""
-	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -207,16 +212,14 @@ func loadDayPlugin(name string, sofile string, inputfile string) (intro string, 
 func (y aocYear) GenerateView() aocYear {
 	y.View = func(w fyne.Window) fyne.CanvasObject {
 		var logo *canvas.Image
-		mydir, err := os.Getwd()
-		if err != nil {
-			fyne.LogError("Error - Unable to locate working dir", err)
+		if FV.WorkingDir == "" {
 			logo = &canvas.Image{}
-		} else if fileExists(mydir + "/assets/aoc_" + y.Title + ".png") {
-			logo = canvas.NewImageFromFile(mydir + "/assets/aoc_" + y.Title + ".png")
-		} else if fileExists(mydir + "/assets/aoc.png") {
-			logo = canvas.NewImageFromFile(mydir + "/assets/aoc.png")
+		} else if fileExists(FV.WorkingDir + "/assets/aoc_" + y.Title + ".png") {
+			logo = canvas.NewImageFromFile(FV.WorkingDir + "/assets/aoc_" + y.Title + ".png")
+		} else if fileExists(FV.WorkingDir + "/assets/aoc.png") {
+			logo = canvas.NewImageFromFile(FV.WorkingDir + "/assets/aoc.png")
 		} else {
-			fyne.LogError("Error - Unable to load year image "+mydir+"/assets/aoc_"+y.Title+".png)", err)
+			fyne.LogError("Error - Unable to load year image "+FV.WorkingDir+"/assets/aoc*.png)", errors.New("no image files found"))
 			logo = &canvas.Image{}
 		}
 		logo.FillMode = canvas.ImageFillContain
@@ -257,6 +260,72 @@ func (d aocDay) GenerateView() aocDay {
 }
 
 func makeDayInputView(d aocDay) fyne.CanvasObject {
-	head := widget.NewLabel("Input file:")
-	return container.NewBorder(head, nil, nil, nil, nil)
+	if fileExists(d.InputFilePath) {
+		content, err := os.ReadFile(d.InputFilePath)
+		if err != nil {
+			fyne.LogError("Error loading file "+d.InputFilePath, err)
+		} else {
+			d.Input = string(content)
+		}
+	}
+
+	headbind := binding.NewString()
+	headbind.Set(d.InputFilePath)
+	head := container.NewHBox(
+		widget.NewLabel("Input file: "),
+		widget.NewLabelWithData(headbind),
+	)
+
+	textbinding := binding.NewString()
+	textbinding.Set(d.Input[:200])
+	textbox := widget.NewLabelWithData(textbinding)
+
+	content := container.NewScroll(textbox)
+
+	tail := container.NewVBox(
+		widget.NewLabelWithStyle("(input text display limited to 200 rows)", fyne.TextAlignCenter, fyne.TextStyle{Italic: true}),
+		widget.NewButton("Select input file (.txt)", func() {
+			fd := dialog.NewFileOpen(func(reader fyne.URIReadCloser, err error) {
+				if err != nil {
+					dialog.ShowError(err, FV.Window)
+					return
+				}
+				if reader == nil {
+					log.Println("Cancelled")
+					return
+				}
+				if reader == nil {
+					log.Println("Cancelled")
+					return
+				}
+				defer reader.Close()
+				data, err := io.ReadAll(reader)
+				if err != nil {
+					fyne.LogError("Failed to load text data", err)
+					return
+				}
+				d.Input = string(data)
+				d.InputFilePath = reader.URI().Path()
+
+				headbind.Set(d.InputFilePath)
+				textbinding.Set(d.Input[:200])
+
+				FV.Window.Content().Refresh()
+			}, FV.Window)
+			fd.SetFilter(storage.NewExtensionFileFilter([]string{".txt"}))
+			if FV.WorkingDir != "" {
+				uri := storage.NewFileURI(FV.WorkingDir + "/pkg/aocyear")
+				lsuri, err := storage.ListerForURI(uri)
+				if err != nil {
+					fyne.LogError("Error - Unable to create uri to initial folder", err)
+					return
+				}
+				fd.SetLocation(lsuri)
+			}
+
+			fd.Show()
+		}),
+	)
+
+	return container.NewBorder(head, tail, nil, nil, content)
 }

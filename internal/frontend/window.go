@@ -14,10 +14,11 @@ import (
 const preferenceCurrentYear = "Welcome"
 
 type frontendVars struct {
-	App     fyne.App
-	Window  fyne.Window
-	FI      map[string]aocFrontendItem
-	FIIndex map[string][]string
+	App        fyne.App
+	Window     fyne.Window
+	FI         map[string]aocFrontendItem
+	FIIndex    map[string][]string
+	WorkingDir string
 }
 
 var FV frontendVars
@@ -29,6 +30,13 @@ func OpenMainWindow() {
 	FV = frontendVars{}
 	FV.App = a
 	FV.Window = w
+	mydir, err := os.Getwd()
+	if err != nil {
+		fyne.LogError("Error - Unable to locate working directory", err)
+	} else {
+		FV.WorkingDir = mydir
+	}
+
 	makeNavigation()
 
 	w.SetContent(makeWindow())
@@ -97,12 +105,10 @@ func makeNav(setYear func(year aocFrontendItem), loadPrevious bool) fyne.CanvasO
 
 func welcomeScreen(_ fyne.Window) fyne.CanvasObject {
 	var logo *canvas.Image
-	mydir, err := os.Getwd()
-	if err != nil {
-		fyne.LogError("", err)
+	if FV.WorkingDir == "" {
 		logo = &canvas.Image{}
 	} else {
-		logo = canvas.NewImageFromFile(mydir + "/assets/aoc.png")
+		logo = canvas.NewImageFromFile(FV.WorkingDir + "/assets/aoc.png")
 	}
 	logo.FillMode = canvas.ImageFillContain
 	logo.SetMinSize(fyne.NewSize(500, 250))
