@@ -40,7 +40,7 @@ func OpenMainWindow() {
 
 func makeWindow() fyne.CanvasObject {
 	content := container.NewStack()
-	title := widget.NewLabel("Component name")
+	title := widget.NewLabelWithStyle("Component Name", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 	intro := widget.NewLabel("An introduction would probably go\nhere, as well as a")
 	intro.Wrapping = fyne.TextWrapWord
 	setYear := func(y aocFrontendItem) {

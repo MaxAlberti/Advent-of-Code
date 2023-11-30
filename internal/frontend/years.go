@@ -5,6 +5,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"plugin"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -28,9 +30,11 @@ type aocYear struct {
 
 type aocDay struct {
 	aocFrontendItem
-	FolderPath string
-	GoFilePath string
-	SoFilePath string
+	YearName      string
+	FolderPath    string
+	InputFilePath string
+	SoFilePath    string
+	Plugin        *plugin.Plugin
 }
 
 func makeNavigation() {
@@ -81,6 +85,7 @@ func getAoCYears() []aocYear {
 			case root+"/"+d.Name() == path:
 				// year folder
 				if cur_year.Title != "" {
+					cur_year = cur_year.GenerateView()
 					res = append(res, cur_year)
 				}
 				cur_year = aocYear{
@@ -88,7 +93,7 @@ func getAoCYears() []aocYear {
 					aocFrontendItem: aocFrontendItem{
 						Title:      d.Name(),
 						Intro:      "Problems of the year " + d.Name(),
-						View:       generateYearScreenFunc(d.Name()),
+						View:       nil,
 						SupportWeb: false,
 						UID:        d.Name(),
 					},
@@ -100,18 +105,24 @@ func getAoCYears() []aocYear {
 					fmt.Println("Warning - Can't parse day before year, Skipped")
 					return nil
 				}
+				_, sofile, inputfile := getDayData(path)
+				intro, p := loadDayPlugin(d.Name(), sofile, inputfile)
 				day := aocDay{
-					FolderPath: path,
-					GoFilePath: "FixMe",
-					SoFilePath: "FixMe",
+					YearName:      cur_year.Title,
+					FolderPath:    path,
+					InputFilePath: inputfile,
+					SoFilePath:    sofile,
+					Plugin:        p,
 					aocFrontendItem: aocFrontendItem{
 						Title:      d.Name(),
-						Intro:      "FixMe",
-						View:       generateYearScreenFunc(d.Name()), //FixMe
+						Intro:      intro,
+						View:       nil,
 						SupportWeb: false,
 						UID:        cur_year.Title + "." + d.Name(),
 					},
 				}
+				day = day.GenerateView()
+
 				cur_year.Days = append(cur_year.Days, day)
 			default:
 				fmt.Printf("Error Parsing - Parts: %v\n", root+"/"+cur_year.Title+"/"+d.Name())
@@ -120,6 +131,7 @@ func getAoCYears() []aocYear {
 		return nil
 	})
 	if cur_year.Title != "" {
+		cur_year = cur_year.GenerateView()
 		res = append(res, cur_year)
 	}
 
@@ -141,29 +153,77 @@ func (y aocYear) String() string {
 }
 
 func (d aocDay) String() string {
-	return fmt.Sprintf("Day: Title: %v, UID: %v, Folder: %v, GoFile: %v, SoFile: %v", d.Title, d.UID, d.FolderPath, d.GoFilePath, d.SoFilePath)
+	return fmt.Sprintf("Day: Title: %v, UID: %v, Folder: %v, InputFile: %v, SoFile: %v", d.Title, d.UID, d.FolderPath, d.InputFilePath, d.SoFilePath)
 }
 
-func generateYearScreenFunc(year string) func(w fyne.Window) fyne.CanvasObject {
-	return func(w fyne.Window) fyne.CanvasObject {
+func fileExists(filePath string) bool {
+	_, err := os.Stat(filePath)
+	return !os.IsNotExist(err)
+}
+
+func getDayData(dir string) (gofile string, sofile string, inputfile string) {
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			switch {
+			case info.Name() == "main.go":
+				gofile = path
+			case strings.HasSuffix(info.Name(), ".go") && gofile == "":
+				gofile = path
+			case info.Name() == "plugin.so":
+				sofile = path
+			case strings.HasSuffix(info.Name(), ".so") && sofile == "":
+				sofile = path
+			case info.Name() == "input.txt":
+				inputfile = path
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		fyne.LogError("Error - Get files in day folder "+dir, err)
+	}
+
+	return
+}
+
+func loadDayPlugin(name string, sofile string, inputfile string) (intro string, p *plugin.Plugin) {
+	p, err := plugin.Open(sofile)
+	if err != nil {
+		panic(err)
+	}
+	intro_ptr, err := p.Lookup("Intro")
+	if err == nil {
+		intro = *intro_ptr.(*string)
+	} else {
+		fyne.LogError("Error - Unable to load intro from "+name, err)
+	}
+
+	return
+}
+
+func (y aocYear) GenerateView() aocYear {
+	y.View = func(w fyne.Window) fyne.CanvasObject {
 		var logo *canvas.Image
 		mydir, err := os.Getwd()
 		if err != nil {
 			fyne.LogError("Error - Unable to locate working dir", err)
 			logo = &canvas.Image{}
-		} else if fileExists(mydir + "/assets/aoc_" + year + ".png") {
-			logo = canvas.NewImageFromFile(mydir + "/assets/aoc_" + year + ".png")
+		} else if fileExists(mydir + "/assets/aoc_" + y.Title + ".png") {
+			logo = canvas.NewImageFromFile(mydir + "/assets/aoc_" + y.Title + ".png")
 		} else if fileExists(mydir + "/assets/aoc.png") {
 			logo = canvas.NewImageFromFile(mydir + "/assets/aoc.png")
 		} else {
-			fyne.LogError("Error - Unable to load year image "+mydir+"/assets/aoc_"+year+".png)", err)
+			fyne.LogError("Error - Unable to load year image "+mydir+"/assets/aoc_"+y.Title+".png)", err)
 			logo = &canvas.Image{}
 		}
 		logo.FillMode = canvas.ImageFillContain
 		logo.SetMinSize(fyne.NewSize(500, 250))
 		//logo.ScaleMode = canvas.ImageScaleFastest
 		return container.NewCenter(container.NewVBox(
-			widget.NewLabelWithStyle("Advent of Code - Year "+year, fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
+			widget.NewLabelWithStyle("Advent of Code - Year "+y.Title, fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
 			logo,
 			container.NewCenter(
 				container.NewHBox(
@@ -175,9 +235,28 @@ func generateYearScreenFunc(year string) func(w fyne.Window) fyne.CanvasObject {
 			widget.NewLabel(""), // balance the header on the tutorial screen we leave blank on this content
 		))
 	}
+
+	return y
 }
 
-func fileExists(filePath string) bool {
-	_, err := os.Stat(filePath)
-	return !os.IsNotExist(err)
+func (d aocDay) GenerateView() aocDay {
+	d.View = func(w fyne.Window) fyne.CanvasObject {
+		//head := widget.NewLabelWithStyle("Advent of Code - "+d.YearName+" Day "+d.Title, fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+
+		tabs := container.NewAppTabs(
+			container.NewTabItem("Input", makeDayInputView(d)),
+			container.NewTabItem("Asserts", widget.NewLabel("Content of tab 2")),
+			container.NewTabItem("Run", widget.NewLabel("Content of tab 3")),
+		)
+
+		tail := widget.NewLabel("")
+
+		return container.NewBorder(nil, tail, nil, nil, tabs)
+	}
+	return d
+}
+
+func makeDayInputView(d aocDay) fyne.CanvasObject {
+	head := widget.NewLabel("Input file:")
+	return container.NewBorder(head, nil, nil, nil, nil)
 }
