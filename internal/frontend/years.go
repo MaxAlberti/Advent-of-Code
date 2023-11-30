@@ -119,12 +119,20 @@ func getAoCYears() []aocYear {
 					SoFilePath:    sofile,
 					Plugin:        p,
 					aocFrontendItem: aocFrontendItem{
-						Title:      d.Name(),
+						Title:      cur_year.Title + " Day " + d.Name(),
 						Intro:      intro,
 						View:       nil,
 						SupportWeb: false,
 						UID:        cur_year.Title + "." + d.Name(),
 					},
+				}
+				if fileExists(day.InputFilePath) {
+					content, err := os.ReadFile(day.InputFilePath)
+					if err != nil {
+						fyne.LogError("Error loading file "+day.InputFilePath, err)
+					} else {
+						day.Input = string(content)
+					}
 				}
 				day = day.GenerateView()
 
@@ -249,7 +257,7 @@ func (d aocDay) GenerateView() aocDay {
 		tabs := container.NewAppTabs(
 			container.NewTabItem("Input", makeDayInputView(d)),
 			container.NewTabItem("Asserts", makeDayAssertsView(d)),
-			container.NewTabItem("Run", widget.NewLabel("Content of tab 3")),
+			container.NewTabItem("Run", makeDayRunView(d)),
 		)
 
 		tail := widget.NewLabel("")
@@ -260,15 +268,6 @@ func (d aocDay) GenerateView() aocDay {
 }
 
 func makeDayInputView(d aocDay) fyne.CanvasObject {
-	if fileExists(d.InputFilePath) {
-		content, err := os.ReadFile(d.InputFilePath)
-		if err != nil {
-			fyne.LogError("Error loading file "+d.InputFilePath, err)
-		} else {
-			d.Input = string(content)
-		}
-	}
-
 	headbind := binding.NewString()
 	headbind.Set(d.InputFilePath)
 	head := container.NewHBox(
@@ -338,6 +337,51 @@ func makeDayAssertsView(d aocDay) fyne.CanvasObject {
 	)
 
 	tail := widget.NewLabel("")
+
+	return container.NewBorder(head, tail, nil, nil, content)
+}
+
+func makeDayRunView(d aocDay) fyne.CanvasObject {
+	var output string
+	var output_binding = binding.NewString()
+	output_binding.Set(output)
+	head := widget.NewButton("RUN", func() {
+		run, err := d.Plugin.Lookup("Run")
+		if err != nil {
+			dialog.ShowError(err, FV.Window)
+			return
+		}
+		com := make(chan any)
+		out := make(chan string)
+		go run.(func(ch chan any))(com)
+		for msg := range com {
+			switch msg {
+			case "GetOut":
+				com <- out
+			case "GetInp":
+				com <- d.Input
+			case "GetAss":
+				close(com)
+			default:
+				fmt.Println("Error - Unhandled command in com channel, closing")
+				close(com)
+			}
+		}
+		for msg := range out {
+			output += msg
+			output_binding.Set(output)
+			FV.Window.Content().Refresh()
+		}
+	})
+
+	content := container.NewScroll(
+		widget.NewLabelWithData(output_binding),
+	)
+
+	tail := container.NewVBox(
+		widget.NewLabel("Assertion Results:"),
+		widget.NewLabel("TBD"),
+	)
 
 	return container.NewBorder(head, tail, nil, nil, content)
 }
