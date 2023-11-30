@@ -6,93 +6,69 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/MaxAlberti/Advent-of-Code/pkg/aoc"
 )
 
+// ----------------------
+
 var Intro string = "TBD - Intro"
+
+var out chan string
+
+func Run(inp chan any) {
+	o, i, a := aoc.GetData(inp)
+	out = o
+	defer close(out)
+	run(i, a)
+}
+
+func print(m string) {
+	out <- m
+}
+
+func println(m string) {
+	out <- m + "\n"
+}
+
+// ^^^^ TEMPLATE ^^^^^^^^
 
 type Elf struct {
 	Number   int
 	Calories int
 	Indexes  []int
 }
-type Assertion struct {
-	Input  string
-	Output string
-}
-
-func (ass Assertion) String() string {
-	return fmt.Sprintf("Assert: %v == %v", ass.Input, ass.Output)
-}
-
-func getData(inp chan any) (chan string, string, []Assertion) {
-	var out chan string
-	var input string
-	var assertions []Assertion
-
-	// Get out chan
-	inp <- "GetOut"
-	var anyValue interface{} = <-inp
-	if channelValue, ok := anyValue.(chan string); ok {
-		out = channelValue
-	} else {
-		fmt.Println("Error - Could not resolve output channel, out")
-	}
-
-	// Get input
-	inp <- "GetInp"
-	anyValue = <-inp
-	if strValue, ok := anyValue.(string); ok {
-		input = strValue
-	} else {
-		fmt.Println("Error - Could not resolve output channel, inp")
-	}
-
-	// Get Asserts
-	inp <- "GetAss"
-	for resp := range inp {
-		anyValue = resp
-		if arrValue, ok := anyValue.([2]string); ok {
-			assertions = append(assertions, Assertion{Input: arrValue[0], Output: arrValue[1]})
-		} else {
-			fmt.Println("Error - Could not resolve output channel, ass")
-		}
-	}
-
-	return out, input, assertions
-}
 
 // Main function
-func Run(inp chan any) {
-	out, input, _ := getData(inp)
-	defer close(out)
+func run(input string, asserts []aoc.Assertion) {
 	lines := get_file_lines(input)
 
 	elfes, err := group_lines_to_elfes(lines)
 	if err != nil {
-		out <- err.Error()
+		println(err.Error())
 		return
 	}
 	elfes = sort_elfes_by_cals(elfes)
 
 	if len(elfes) > 0 {
-		out <- fmt.Sprintf("Found %s elfes!\nTop:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\nBottom:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\n",
+		print(fmt.Sprintf("Found %s elfes!\nTop:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\nBottom:\n\t-Number:\t%s\n\t-Calories:\t%s\n\tIndexes:\t%s\n",
 			fmt.Sprint(len(elfes)),
 			fmt.Sprint(elfes[0].Number),
 			fmt.Sprint(elfes[0].Calories),
 			fmt.Sprint(elfes[0].Indexes),
 			fmt.Sprint(elfes[len(elfes)-1].Number),
 			fmt.Sprint(elfes[len(elfes)-1].Calories),
-			fmt.Sprint(elfes[len(elfes)-1].Indexes))
+			fmt.Sprint(elfes[len(elfes)-1].Indexes)))
 	} else {
-		out <- "No elfes fonund..."
+		println("No elfes fonund...")
 	}
 
 	top_three, err := get_top_three_cals(elfes)
 	if err != nil {
-		out <- err.Error()
+		println(err.Error())
 		return
 	}
-	out <- fmt.Sprintf("\nThe top3 elfes are carrying %s cals!", fmt.Sprint(top_three))
+	println(fmt.Sprintf("\nThe top3 elfes are carrying %s cals!", fmt.Sprint(top_three)))
 }
 
 func get_file_lines(input string) []string {
