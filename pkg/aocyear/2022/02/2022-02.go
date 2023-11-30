@@ -66,9 +66,10 @@ func getData(inp chan any) (chan string, string, []Assertion) {
 func Run(inp chan any) {
 	out, input, _ := getData(inp)
 	defer close(out)
-	out <- "Starting"
+	out <- "Starting\n"
 	generate_signs()
 	lines := get_file_lines(input)
+
 	result1, result2 := calculate_outcome(lines, 0, 3, 6)
 	out <- fmt.Sprintf("P1: Total player score: %d\nP2: Total player score: %d", result1, result2)
 }
@@ -77,6 +78,9 @@ func calculate_outcome(lines []string, lose_score int, draw_score int, win_score
 	p1_total_score := 0
 	p2_total_score := 0
 	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
 		elf_char := string(line[0:1])
 		player_char := string(line[2:3])
 		// Convert to signs
