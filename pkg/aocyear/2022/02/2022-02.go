@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+var Intro string = "TBD - Intro"
+
 type Sign struct {
 	Value     int
 	Name      string

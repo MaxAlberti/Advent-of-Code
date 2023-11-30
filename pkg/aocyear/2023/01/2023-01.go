@@ -2,6 +2,8 @@ package main
 
 import "fmt"
 
+var Intro string = "TBD - Intro"
+
 type Assertion struct {
 	Input  string
 	Output string

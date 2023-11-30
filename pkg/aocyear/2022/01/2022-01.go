@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+var Intro string = "TBD - Intro"
+
 type Elf struct {
 	Number   int
 	Calories int
