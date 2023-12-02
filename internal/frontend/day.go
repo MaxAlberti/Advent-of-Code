@@ -1,6 +1,7 @@
 package frontend
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -29,6 +30,8 @@ type aocDay struct {
 	AssFilePath   string
 	Plugin        *plugin.Plugin
 	Assertions    []Assertion
+	AssTabs       *container.DocTabs
+	AssIndex      int
 }
 
 type Assertion struct {
@@ -59,24 +62,61 @@ func (d aocDay) GenerateView() aocDay {
 }
 
 func (d aocDay) LoadDayAsserts() aocDay {
-	var jsonstr string
+	var loadedAsserts []Assertion
 	if shared.FileExists(d.AssFilePath) {
 		content, err := os.ReadFile(d.AssFilePath)
 		if err != nil {
 			fyne.LogError("Error loading file "+d.AssFilePath, err)
 			return d
 		} else {
-			jsonstr = string(content)
+
+			err := json.Unmarshal(content, &loadedAsserts)
+			if err != nil {
+				fyne.LogError("Error - Unable to unmarshal assertion json data", err)
+			}
+
+			fmt.Println("Loaded Assertions:")
+			for ass := range loadedAsserts {
+				fmt.Println(ass)
+			}
 		}
 	}
 
+	d.Assertions = loadedAsserts
+
 	d.Assertions = append(d.Assertions, Assertion{Assertion: aoc.Assertion{Input: "T1", Output: "T2"}})
 
-	// Add bindings
-	for j := range d.Assertions {
-		d.Assertions[j].IB = binding.BindString(&d.Assertions[j].Input)
-		d.Assertions[j].OB = binding.BindString(&d.Assertions[j].Output)
+	if d.AssTabs != nil {
+		// Clear View
+		d.AssTabs.SetItems([]*container.TabItem{})
+
+		d.AssIndex = 0
+		// Add bindings + Reload View
+		for j := range d.Assertions {
+			d.AssIndex++
+			d.AssTabs.Append(makeDayAssertsTabItem(j, d))
+		}
+		d.AssTabs.Refresh()
+		FV.Window.Content().Refresh()
 	}
+
+	return d
+}
+
+func (d aocDay) SaveDayAsserts() aocDay {
+	//	Sync frontend asserts with backend asserts
+	d = d.SyncAssertTabs()
+	fmt.Println(d.Assertions)
+	return d
+}
+
+func (d aocDay) SyncAssertTabs() aocDay {
+	fmt.Println("Sync")
+
+	for _, tst := range d.Assertions {
+		fmt.Printf("Ass: %v, IB: %v, IO; %v\n", tst.Assertion, tst.IB, tst.OB)
+	}
+
 	return d
 }
 
@@ -190,47 +230,49 @@ func makeDayInputView(d aocDay) fyne.CanvasObject {
 func makeDayAssertsView(d aocDay) fyne.CanvasObject {
 	head := widget.NewLabel("Add assertions here!")
 
-	content := container.NewDocTabs()
-	i := 0
+	d.AssTabs = container.NewDocTabs()
+	d.AssIndex = 0
 	// make view
 	fn_makeEmptyTab := func() *container.TabItem {
-		i++
+		d.AssIndex++
 		ass := Assertion{}
 		d.Assertions = append(d.Assertions, ass)
 
-		d.Assertions[len(d.Assertions)-1].IB = binding.BindString(&d.Assertions[len(d.Assertions)-1].Input)
-		d.Assertions[len(d.Assertions)-1].OB = binding.BindString(&d.Assertions[len(d.Assertions)-1].Output)
-
-		return makeDayAssertsTabItem(i, &d.Assertions[len(d.Assertions)-1])
+		return makeDayAssertsTabItem(len(d.Assertions)-1, d)
 	}
-	content.CreateTab = fn_makeEmptyTab
+	d.AssTabs.CreateTab = fn_makeEmptyTab
+
 	// Add existing asserts
-	for j := range d.Assertions {
-		i++
+	d = d.LoadDayAsserts()
 
-		content.Append(makeDayAssertsTabItem(i, &d.Assertions[j]))
-	}
+	tail := container.NewHBox(
+		widget.NewButton("Save Assertions", func() {
+			d = d.SaveDayAsserts()
+		}),
+		widget.NewButton("Load Assertions", func() {
+			d = d.LoadDayAsserts()
+		}),
+	)
 
-	tail := widget.NewButton("Save Assertions", func() {
-		fmt.Println(d.Assertions)
-	})
-
-	return container.NewBorder(head, tail, nil, nil, content)
+	return container.NewBorder(head, tail, nil, nil, d.AssTabs)
 }
 
-func makeDayAssertsTabItem(i int, ass *Assertion) *container.TabItem {
+func makeDayAssertsTabItem(ass_ind int, d aocDay) *container.TabItem {
+	d.Assertions[len(d.Assertions)-1].IB = binding.BindString(&d.Assertions[len(d.Assertions)-1].Input)
+	d.Assertions[len(d.Assertions)-1].OB = binding.BindString(&d.Assertions[len(d.Assertions)-1].Output)
+
 	ientry := widget.NewMultiLineEntry()
 	ientry.Wrapping = fyne.TextWrapOff
 	ientry.Scroll = container.ScrollBoth
-	ientry.Bind(ass.IB)
+	ientry.Bind(d.Assertions[len(d.Assertions)-1].IB)
 
 	oentry := widget.NewMultiLineEntry()
 	oentry.Wrapping = fyne.TextWrapOff
 	oentry.Scroll = container.ScrollBoth
-	oentry.Bind(ass.OB)
+	oentry.Bind(d.Assertions[len(d.Assertions)-1].OB)
 
 	return container.NewTabItem(
-		fmt.Sprintf("Assertion %d", i),
+		fmt.Sprintf("Assertion %d", d.AssIndex),
 		container.NewHSplit(
 			container.NewBorder(
 				widget.NewLabel("Input"),
